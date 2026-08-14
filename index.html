@@ -71,6 +71,7 @@ body{font-family:Arial,sans-serif;background:#F0F4F8;min-height:100vh}
 .ebox{background:#F5F5F5;border-radius:7px;padding:12px;font-size:11px;color:#333;line-height:1.7;white-space:pre-wrap;font-family:monospace;margin-top:8px;max-height:300px;overflow-y:auto;display:none}
 .ebtn{width:100%;padding:11px;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;background:#B71C1C;margin-top:8px}
 .cbtn{background:#1F4E79;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer;margin-top:5px;display:none}
+.sbtn{background:#1B5E20;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:12px;font-weight:700;cursor:pointer;margin-top:5px;margin-left:6px;display:none}
 /* Refresh indicator — silent, no flash */
 .rfbar{height:3px;background:#1F4E79;position:fixed;top:0;left:0;z-index:999;width:0;transition:width .4s linear;pointer-events:none}
 .rfbar.running{width:70%}
@@ -330,7 +331,8 @@ body{font-family:Arial,sans-serif;background:#F0F4F8;min-height:100vh}
       <button class="ebtn" onclick="genEmail()">Generate Email to Rob and Mike</button>
       <div class="ebox" id="f-em"></div>
       <button class="cbtn" id="f-cb" onclick="copyEmail()">Copy Email</button>
-      <p class="note" style="margin-top:6px">Send to rob@boostoxygen.com and mgrice@boostoxygen.com by 5:00 PM</p>
+      <button class="sbtn" id="f-sb" onclick="sendEmail()">✉ Send to Rob and Mike</button>
+      <p class="note" style="margin-top:6px">Goes to rob@boostoxygen.com and mgrice@boostoxygen.com, cc naveen@boostoxygen.com. Send by 5:00 PM.</p>
     </div>
   </div>
 </div>
@@ -635,31 +637,78 @@ function genEmail(){
   });
   todayRows.sort(function(a,b){return (a.ts||"").localeCompare(b.ts||"");});
   var latest={};todayRows.forEach(function(r){if(r.team)latest[r.team]=r;});
-  var tR=0,tD=0,tP=0,tI=0,tS=0,lines="";
+  var tR=0,tD=0,tP=0,tI=0,tS=0,lines="",msgLines="";
   [["Online Set 1","Stephanie"],["Online Set 2","Ben"],["Online Set 3","JL (Jonathan L.)"],["LTL Priority","Jonathan (Sr.)"]].forEach(function(pair){
     var s=latest[pair[0]];
     if(s){tS++;tR+=parseInt(s.recv)||0;tD+=parseInt(s.done)||0;tP+=parseInt(s.pend)||0;tI+=parseInt(s.ccount)||0;
       var pct=parseInt(s.recv)>0?Math.round(parseInt(s.done)/parseInt(s.recv)*100):0;
-      lines+="  "+pair[0]+" ("+pair[1]+"): "+s.done+" of "+s.recv+" shipped ("+pct+"%), "+s.pend+" pending\n";
+      // pend was printed raw, so a blank field rendered as ",  pending" with no
+      // number at all. Default it to 0.
+      var pend=(s.pend===""||s.pend===null||typeof s.pend==="undefined")?0:s.pend;
+      lines+="  "+pair[0]+" ("+pair[1]+"): "+s.done+" of "+s.recv+" shipped ("+pct+"%), "+pend+" pending\n";
+      // Team lead notes were shown on the dashboard but never made it into the
+      // email, so Rob and Mike never saw stock warnings, LTL pallet/BOL counts,
+      // complaints etc. They are the part of the report that needs a human.
+      if(s.msg&&String(s.msg).trim())msgLines+="  "+pair[1]+": "+String(s.msg).trim()+"\n";
     } else lines+="  "+pair[0]+" ("+pair[1]+"): Not yet submitted\n";
   });
   var rate=tR>0?Math.round(tD/tR*100):0;
   var days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
   var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
   var today=days[est.getDay()]+", "+months[est.getMonth()]+" "+est.getDate()+", "+est.getFullYear();
-  var em="To: rob@boostoxygen.com, mgrice@boostoxygen.com\nSubject: Daily Fulfillment Report — "+today+"\n\nHi Rob and Mike,\n\nHere is today's fulfillment summary.\n\nOVERALL\nTotal received: "+tR+"  |  Total shipped: "+tD+"  |  Same-day rate: "+rate+"%\nTotal pending: "+tP+"  |  Carrier issues: "+tI+"  |  Teams submitted: "+tS+"/4\n\nTEAM BREAKDOWN\n"+lines;
-  if(gv("f-sc")) em+="\nSHIP DATE CHANGES\n"+gv("f-sc")+"\n";
-  if(gv("f-es")) em+="\nESCALATIONS\n"+gv("f-es")+"\n";
-  if(gv("f-tp")) em+="\nTOMORROW PRIORITIES\n"+gv("f-tp")+"\n";
-  if(gv("f-nt")) em+="\nNOTES\n"+gv("f-nt")+"\n";
-  em+="\nBest,\nFred Davila\nFulfillment Manager, Boost Oxygen LLC\nfred@boostoxygen.com";
+  var body="Hi Rob and Mike,\n\nHere is today's fulfillment summary.\n\nOVERALL\nTotal received: "+tR+"  |  Total shipped: "+tD+"  |  Same-day rate: "+rate+"%\nTotal pending: "+tP+"  |  Carrier issues: "+tI+"  |  Teams submitted: "+tS+"/4\n\nTEAM BREAKDOWN\n"+lines;
+  if(msgLines) body+="\nTEAM LEAD MESSAGES\n"+msgLines;
+  if(gv("f-sc")) body+="\nSHIP DATE CHANGES\n"+gv("f-sc")+"\n";
+  if(gv("f-es")) body+="\nESCALATIONS\n"+gv("f-es")+"\n";
+  if(gv("f-tp")) body+="\nTOMORROW PRIORITIES\n"+gv("f-tp")+"\n";
+  if(gv("f-nt")) body+="\nNOTES\n"+gv("f-nt")+"\n";
+  body+="\nBest,\nFred Davila\nFulfillment Manager, Boost Oxygen LLC\nfred@boostoxygen.com";
+
+  LAST_EMAIL={subject:"Daily Fulfillment Report — "+today,body:body};
+
+  var em="To: "+EMAIL_TO+"\nCc: "+EMAIL_CC+"\nSubject: "+LAST_EMAIL.subject+"\n\n"+body;
   var box=document.getElementById("f-em"); box.textContent=em; box.style.display="block";
   document.getElementById("f-cb").style.display="inline-block";
+  document.getElementById("f-sb").style.display="inline-block";
 }
+
+// Recipients live in one place so the preview, the copy and the send button can
+// never disagree about who this goes to.
+var EMAIL_TO="rob@boostoxygen.com, mgrice@boostoxygen.com";
+var EMAIL_CC="naveen@boostoxygen.com";
+var LAST_EMAIL=null;
 
 function copyEmail(){
   navigator.clipboard.writeText(document.getElementById("f-em").textContent)
     .then(function(){var b=document.getElementById("f-cb");b.textContent="Copied!";setTimeout(function(){b.textContent="Copy Email";},2000);});
+}
+
+// One click: opens the mail client with recipients, CC, subject and the whole
+// report already filled in, so Fred only has to press Send.
+function sendEmail(){
+  if(!LAST_EMAIL) genEmail();
+  if(!LAST_EMAIL) return;
+  var url="mailto:"+encodeURIComponent(EMAIL_TO)
+        +"?cc="+encodeURIComponent(EMAIL_CC)
+        +"&subject="+encodeURIComponent(LAST_EMAIL.subject)
+        +"&body="+encodeURIComponent(LAST_EMAIL.body);
+  // Mail clients truncate very long mailto links. If the report has grown past
+  // what is safe, copy it instead and tell Fred to paste, rather than silently
+  // sending Rob and Mike half a report.
+  if(url.length>1900){
+    navigator.clipboard.writeText(LAST_EMAIL.body).then(function(){
+      alert("This report is too long to prefill automatically.\n\nThe full report has been copied to your clipboard. Your email draft is opening now - press Ctrl+V in the message body to paste it, then Send.");
+    }).catch(function(){});
+    window.location.href="mailto:"+encodeURIComponent(EMAIL_TO)
+      +"?cc="+encodeURIComponent(EMAIL_CC)
+      +"&subject="+encodeURIComponent(LAST_EMAIL.subject)
+      +"&body="+encodeURIComponent("[ PASTE HERE - press Ctrl+V ]");
+    return;
+  }
+  var b=document.getElementById("f-sb");
+  b.textContent="Opening email...";
+  setTimeout(function(){b.textContent="Send to Rob and Mike";},2500);
+  window.location.href=url;
 }
 
 // ── AUTO REFRESH — silent, 30 seconds, never wipes screen ────────────
