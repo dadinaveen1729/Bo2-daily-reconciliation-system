@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boost Oxygen – Daily Reconciliation</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#F0F4F8;min-height:100vh}
+.top-bar{background:#1F4E79;color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.top-bar h1{font-size:13px;font-weight:700}
+.top-bar .sub{font-size:10px;opacity:.65;margin-top:2px}
+.live-clock{text-align:right}
+.live-clock .time{font-size:18px;font-weight:700;color:#FFD700;letter-spacing:.04em}
+.live-clock .date{font-size:10px;opacity:.75;margin-top:2px}
+.live-clock .tz{font-size:9px;opacity:.55}
+.dev-credit{font-size:9px;opacity:.45;text-align:right;margin-top:2px}
+.tabs{display:flex;gap:5px;padding:12px 16px 0;flex-wrap:wrap;background:#E8EFF7}
+.tab{padding:8px 16px;border-radius:8px 8px 0 0;font-size:11px;font-weight:700;cursor:pointer;border:none;transition:all .15s;opacity:.55}
+.tab:hover{opacity:.8}
+.tab.active{opacity:1;color:#fff}
+.t-s{background:#1565C0}.t-b{background:#2E7D32}.t-jl{background:#E65100}.t-j{background:#6A1B9A}.t-f{background:#B71C1C}
+.panel{display:none;padding:16px;max-width:760px;margin:0 auto}
+.panel.active{display:block}
+.card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:14px;overflow:hidden}
+.ch{padding:12px 16px;color:#fff;font-weight:700;font-size:12px}
+.cb{padding:14px 16px}
+.fg{display:grid;gap:9px;margin-bottom:8px}
+.fg1{grid-template-columns:1fr}
+.fg2{grid-template-columns:1fr 1fr}
+.fg3{grid-template-columns:1fr 1fr 1fr}
+@media(max-width:500px){.fg2,.fg3{grid-template-columns:1fr}}
+.field label{display:block;font-size:9px;font-weight:700;color:#666;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
+.field input,.field select,.field textarea{width:100%;border:1.5px solid #ddd;border-radius:6px;padding:8px 10px;font-size:13px;font-family:Arial;background:#FAFAFA;color:#212121;transition:border .15s}
+.field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:#1F4E79;background:#fff}
+.field textarea{resize:vertical;min-height:50px}
+.auto input{background:#E8F5E9!important;border-color:#2E7D32!important;color:#1B5E20!important;font-weight:700!important;text-align:center}
+.bn{font-size:18px!important;font-weight:700!important;text-align:center!important}
+.pb{height:7px;background:#eee;border-radius:4px;overflow:hidden;margin:5px 0 2px}
+.pf{height:100%;border-radius:4px;transition:width .4s}
+.pl{font-size:10px;color:#888;text-align:right}
+.sec{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#999;margin:14px 0 7px;padding-bottom:3px;border-bottom:1px solid #eee}
+.mt{width:100%;border-collapse:collapse;font-size:11px;margin-top:5px}
+.mt th{padding:6px 7px;text-align:left;font-size:9px;font-weight:700;color:#fff}
+.mt td{padding:4px 6px;border-bottom:1px solid #f0f0f0}
+.mt tr:nth-child(even) td{background:#FAFAFA}
+.mt input,.mt select{width:100%;border:1px solid #e0e0e0;border-radius:4px;padding:3px 5px;font-size:11px;background:#fff}
+.ab{font-size:10px;border:1.5px dashed #bbb;background:none;border-radius:5px;padding:4px 10px;cursor:pointer;margin-top:5px;color:#666}
+.sub-btn{width:100%;padding:13px;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;margin-top:8px;transition:all .15s}
+.ok{display:none;background:#E8F5E9;border:2px solid #2E7D32;border-radius:8px;padding:14px;text-align:center;color:#1B5E20;font-size:13px;font-weight:700;margin-top:8px}
+.er{display:none;background:#FDECEA;border:2px solid #C00000;border-radius:8px;padding:12px;text-align:center;color:#C00000;font-size:12px;margin-top:8px}
+/* Fred Summary */
+.kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+@media(max-width:460px){.kgrid{grid-template-columns:repeat(2,1fr)}}
+.kpi{background:#fff;border-radius:8px;padding:12px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.kpi .v{font-size:26px;font-weight:700;line-height:1}
+.kpi .l{font-size:9px;color:#888;margin-top:3px;text-transform:uppercase;letter-spacing:.04em}
+.kpi.blue .v{color:#1F4E79}.kpi.green .v{color:#1B5E20}.kpi.amb .v{color:#BA7517}
+.kpi.red .v{color:#C00000}.kpi.pur .v{color:#6A1B9A}.kpi.gry .v{color:#555}
+.tbl{width:100%;border-collapse:collapse;font-size:11px;margin-bottom:10px}
+.tbl th{background:#1F4E79;color:#fff;padding:7px 8px;text-align:left;font-size:9px;font-weight:700}
+.tbl td{padding:7px 8px;border-bottom:1px solid #eee;vertical-align:middle}
+.tbl tr:nth-child(even) td{background:#FAFAFA}
+.badge{display:inline-block;padding:2px 7px;border-radius:8px;font-size:9px;font-weight:700}
+.bg{background:#E8F5E9;color:#1B5E20}.ba{background:#FFF9C4;color:#BA7517}.br{background:#FDECEA;color:#C00000}.bgr{background:#F5F5F5;color:#888}
+.sbar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700}
+.chip.dn{background:#E8F5E9;color:#1B5E20}.chip.wt{background:#F5F5F5;color:#888;font-style:italic}
+.mbox{background:#F9F9F9;border-radius:7px;padding:10px;font-size:11px;color:#444;line-height:1.7;min-height:36px}
+.alt{background:#FDECEA;border-left:4px solid #C00000;border-radius:0 6px 6px 0;padding:8px 12px;font-size:11px;color:#7B1F1F;margin:4px 0;line-height:1.5}
+.ebox{background:#F5F5F5;border-radius:7px;padding:12px;font-size:11px;color:#333;line-height:1.7;white-space:pre-wrap;font-family:monospace;margin-top:8px;max-height:300px;overflow-y:auto;display:none}
+.ebtn{width:100%;padding:11px;border:none;border-radius:8px;font-size:13px;font-weight:700;color:#fff;cursor:pointer;background:#B71C1C;margin-top:8px}
+.cbtn{background:#1F4E79;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:11px;cursor:pointer;margin-top:5px;display:none}
+/* Refresh indicator — silent, no flash */
+.rfbar{height:3px;background:#1F4E79;position:fixed;top:0;left:0;z-index:999;width:0;transition:width .4s linear;pointer-events:none}
+.rfbar.running{width:70%}
+.rfbar.done{width:100%;transition:width .1s;opacity:0;transition:opacity .5s}
+.ldg{text-align:center;padding:20px;color:#888;font-size:12px}
+.rbtn{background:#E8EFF7;border:1px solid #ccc;border-radius:5px;padding:5px 12px;font-size:10px;cursor:pointer;margin-bottom:10px}
+.pulse{display:inline-block;width:7px;height:7px;background:#4CAF50;border-radius:50%;margin-right:4px;animation:pl 2s infinite}
+@keyframes pl{0%,100%{opacity:1}50%{opacity:.3}}
+.note{font-size:10px;color:#999;font-style:italic;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="rfbar" id="rfbar"></div>
+<div class="top-bar">
+  <div>
+    <h1>Boost Oxygen — Daily Fulfillment Reconciliation</h1>
+    <div class="sub">Submissions go to Google Sheets instantly — Fred sees all data in real time</div>
+  </div>
+  <div class="live-clock">
+    <div class="time" id="lv-time">--:-- --</div>
+    <div class="date" id="lv-date">Loading...</div>
+    <div class="tz">Eastern Time (ET)</div>
+    <div class="dev-credit">Naveen Dadi, Operations Specialist</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab t-s active" onclick="sw('s')">Stephanie</button>
+  <button class="tab t-b" onclick="sw('b')">Ben</button>
+  <button class="tab t-jl" onclick="sw('jl')">JL</button>
+  <button class="tab t-j" onclick="sw('j')">Jonathan</button>
+  <button class="tab t-f" onclick="sw('f')">Fred Summary</button>
+</div>
+
+<!-- STEPHANIE -->
+<div class="panel active" id="panel-s">
+<div class="card">
+  <div class="ch" style="background:#1565C0">Online Set 1 — Stephanie &nbsp;|&nbsp; fulfillment@boostoxygen.com &nbsp;|&nbsp; Target: 1:00 PM</div>
+  <div class="cb">
+    <div class="sec">Shift Info</div>
+    <div class="fg fg2">
+      <div class="field"><label>Packers on Duty</label><input id="s-pk" placeholder="e.g. Frank + rotation"></div>
+      <div class="field"><label>Any Staff Absent</label><input id="s-ab" placeholder="None or name"></div>
+    </div>
+    <div class="sec">Order Counts</div>
+    <div class="fg fg3">
+      <div class="field"><label>Orders Received</label><input type="number" id="s-rv" min="0" oninput="calc('s')" class="bn" placeholder="0"></div>
+      <div class="field"><label>Orders Completed</label><input type="number" id="s-dn" min="0" oninput="calc('s')" class="bn" placeholder="0"></div>
+      <div class="field"><label>Orders Pending</label><input type="number" id="s-pd" min="0" class="bn" placeholder="0"></div>
+    </div>
+    <div class="fg fg3">
+      <div class="field"><label>Labels Not Shipped</label><input type="number" id="s-un" min="0" placeholder="0"></div>
+      <div class="field"><label>Reshipping Orders</label><input type="number" id="s-rs" min="0" placeholder="0"></div>
+      <div class="field auto"><label>Same-Day Rate</label><input id="s-rt" readonly placeholder="Auto"></div>
+    </div>
+    <div class="pb"><div class="pf" id="s-bar" style="background:#1565C0;width:0%"></div></div>
+    <div class="pl" id="s-pl">0% completed</div>
+    <div class="sec">Carrier Issues</div>
+    <table class="mt"><thead><tr style="background:#C00000"><th>Carrier</th><th>Tracking #</th><th>Order #</th><th>Issue</th><th>Claim?</th></tr></thead><tbody id="s-cr"></tbody></table>
+    <button class="ab" style="border-color:#C00000;color:#C00000" onclick="addC('s-cr')">+ Add carrier issue</button>
+    <div class="sec">Inventory and Next Day</div>
+    <div class="fg fg2">
+      <div class="field"><label>Any SKU Out of Stock?</label><select id="s-sk"><option value="">Select</option><option>No</option><option>Yes</option></select></div>
+    </div>
+    <div class="fg fg1">
+      <div class="field"><label>Orders Carrying to Tomorrow</label><input id="s-cy" placeholder="Order numbers or none"></div>
+      <div class="field"><label>Message for Fred</label><textarea id="s-mg" placeholder="Anything Fred needs to know"></textarea></div>
+    </div>
+    <button class="sub-btn" id="s-btn" style="background:#1565C0" onclick="go('s','Stephanie','Online Set 1','fulfillment@boostoxygen.com')">Submit Stephanie Reconciliation to Fred</button>
+    <div class="ok" id="s-ok">✅ &nbsp; Submitted! Fred can see your numbers right now.</div>
+    <div class="er" id="s-er">Could not submit. Check internet and try again.</div>
+  </div>
+</div>
+</div>
+
+<!-- BEN -->
+<div class="panel" id="panel-b">
+<div class="card">
+  <div class="ch" style="background:#2E7D32">Online Set 2 — Ben &nbsp;|&nbsp; ben@boostoxygen.com &nbsp;|&nbsp; Target: 1:00 PM</div>
+  <div class="cb">
+    <div class="sec">Shift Info</div>
+    <div class="fg fg2">
+      <div class="field"><label>Packers on Duty</label><input id="b-pk" placeholder="e.g. Rosa, Jose"></div>
+      <div class="field"><label>Any Staff Absent</label><input id="b-ab" placeholder="None or name"></div>
+    </div>
+    <div class="sec">Order Counts</div>
+    <div class="fg fg3">
+      <div class="field"><label>Orders Received</label><input type="number" id="b-rv" min="0" oninput="calc('b')" class="bn" placeholder="0"></div>
+      <div class="field"><label>Orders Completed</label><input type="number" id="b-dn" min="0" oninput="calc('b')" class="bn" placeholder="0"></div>
+      <div class="field"><label>Orders Pending</label><input type="number" id="b-pd" min="0" class="bn" placeholder="0"></div>
+    </div>
+    <div class="fg fg3">
+      <div class="field"><label>Labels Not Shipped</label><input type="number" id="b-un" min="0" placeholder="0"></div>
+      <div class="field"><label>Reshipping Orders</label><input type="number" id="b-rs" min="0" placeholder="0"></div>
+      <div class="field auto"><label>Same-Day Rate</label><input id="b-rt" readonly placeholder="Auto"></div>
+    </div>
+    <div class="pb"><div class="pf" id="b-bar" style="background:#2E7D32;width:0%"></div></div>
+    <div class="pl" id="b-pl">0% completed</div>
+    <div class="sec">Comms and Cancellations</div>
+    <div class="fg fg2">
+      <div class="field"><label>Amazon Cancellations</label><input type="number" id="b-ac" min="0" placeholder="0"></div>
+      <div class="field"><label>Walmart Cancellations</label><input type="number" id="b-wc" min="0" placeholder="0"></div>
+      <div class="field"><label>Late Delivery Complaints</label><input type="number" id="b-cp" min="0" placeholder="0"></div>
+      <div class="field"><label>Emails Sent for Fred</label><input type="number" id="b-em" min="0" placeholder="0"></div>
+    </div>
+    <div class="sec">Carrier Issues</div>
+    <table class="mt"><thead><tr style="background:#C00000"><th>Carrier</th><th>Tracking #</th><th>Order #</th><th>Issue</th><th>Claim?</th></tr></thead><tbody id="b-cr"></tbody></table>
+    <button class="ab" style="border-color:#C00000;color:#C00000" onclick="addC('b-cr')">+ Add carrier issue</button>
+    <div class="sec">Inventory and Next Day</div>
+    <div class="fg fg2">
+      <div class="field"><label>Any SKU Out of Stock?</label><select id="b-sk"><option value="">Select</option><option>No</option><option>Yes</option></select></div>
+    </div>
+    <div class="fg fg1">
+      <div class="field"><label>Orders Carrying to Tomorrow</label><input id="b-cy" placeholder="Order numbers or none"></div>
+      <div class="field"><label>Message for Fred</label><textarea id="b-mg" placeholder="Anything Fred needs to know"></textarea></div>
+    </div>
+    <button class="sub-btn" id="b-btn" style="background:#2E7D32" onclick="go('b','Ben','Online Set 2','ben@boostoxygen.com')">Submit Ben Reconciliation to Fred</button>
+    <div class="ok" id="b-ok">✅ &nbsp; Submitted! Fred can see your numbers right now.</div>
+    <div class="er" id="b-er">Could not submit. Check internet and try again.</div>
+  </div>
+</div>
+</div>
+
+<!-- JL -->
+<div class="panel" id="panel-jl">
+<div class="card">
+  <div class="ch" style="background:#E65100">Online Set 3 — JL (Jonathan L.) &nbsp;|&nbsp; fulfillment2@boostoxygen.com &nbsp;|&nbsp; Target: 1:00 PM</div>
+  <div class="cb">
+    <div class="sec">Shift Info</div>
+    <div class="fg fg2">
+      <div class="field"><label>Packers on Duty</label><input id="jl-pk" placeholder="e.g. Joanna, Pacheco"></div>
+      <div class="field"><label>Any Staff Absent</label><input id="jl-ab" placeholder="None or name"></div>
+    </div>
+    <div class="sec">Order Counts</div>
+    <div class="fg fg3">
+      <div class="field"><label>Orders Received</label><input type="number" id="jl-rv" min="0" oninput="calc('jl')" class="bn" placeholder="0"></div>
+      <div class="field"><label>Orders Completed</label><input type="number" id="jl-dn" min="0" oninput="calc('jl')" class="bn" placeholder="0"></div>
+      <div class="field"><label>Orders Pending</label><input type="number" id="jl-pd" min="0" class="bn" placeholder="0"></div>
+    </div>
+    <div class="fg fg3">
+      <div class="field"><label>Labels Not Shipped</label><input type="number" id="jl-un" min="0" placeholder="0"></div>
+      <div class="field"><label>Reshipping Orders</label><input type="number" id="jl-rs" min="0" placeholder="0"></div>
+      <div class="field auto"><label>Same-Day Rate</label><input id="jl-rt" readonly placeholder="Auto"></div>
+    </div>
+    <div class="pb"><div class="pf" id="jl-bar" style="background:#E65100;width:0%"></div></div>
+    <div class="pl" id="jl-pl">0% completed</div>
+    <div class="sec">Carrier Issues</div>
+    <table class="mt"><thead><tr style="background:#C00000"><th>Carrier</th><th>Tracking #</th><th>Order #</th><th>Issue</th><th>Claim?</th></tr></thead><tbody id="jl-cr"></tbody></table>
+    <button class="ab" style="border-color:#C00000;color:#C00000" onclick="addC('jl-cr')">+ Add carrier issue</button>
+    <div class="sec">Inventory and Next Day</div>
+    <div class="fg fg2">
+      <div class="field"><label>Any SKU Out of Stock?</label><select id="jl-sk"><option value="">Select</option><option>No</option><option>Yes</option></select></div>
+    </div>
+    <div class="fg fg1">
+      <div class="field"><label>Orders Carrying to Tomorrow</label><input id="jl-cy" placeholder="Order numbers or none"></div>
+      <div class="field"><label>Message for Fred</label><textarea id="jl-mg" placeholder="Anything Fred needs to know"></textarea></div>
+    </div>
+    <button class="sub-btn" id="jl-btn" style="background:#E65100" onclick="go('jl','JL (Jonathan L.)','Online Set 3','fulfillment2@boostoxygen.com')">Submit JL Reconciliation to Fred</button>
+    <div class="ok" id="jl-ok">✅ &nbsp; Submitted! Fred can see your numbers right now.</div>
+    <div class="er" id="jl-er">Could not submit. Check internet and try again.</div>
+  </div>
+</div>
+</div>
+
+<!-- JONATHAN SR -->
+<div class="panel" id="panel-j">
+<div class="card">
+  <div class="ch" style="background:#6A1B9A">LTL Priority — Jonathan (Sr.) &nbsp;|&nbsp; jonathan@boostoxygen.com &nbsp;|&nbsp; Target: 3:00 PM</div>
+  <div class="cb">
+    <div class="sec">Shift Info</div>
+    <div class="fg fg2">
+      <div class="field"><label>Packers on Duty</label><input id="j-pk" placeholder="Arturo, Josh, Nate, Andrew, Cesar, Efrain Jr."></div>
+      <div class="field"><label>Any Staff Absent</label><input id="j-ab" placeholder="None or name"></div>
+    </div>
+    <div class="fg fg2">
+      <div class="field"><label>Truck Appointments Confirmed?</label><select id="j-ap"><option value="">Select</option><option>Yes - All confirmed</option><option>Yes - Partially</option><option>No - Pending</option></select></div>
+      <div class="field"><label>BOL Completed?</label><select id="j-bl"><option value="">Select</option><option>Yes</option><option>No - In progress</option></select></div>
+    </div>
+    <div class="sec">Order Counts</div>
+    <div class="fg fg3">
+      <div class="field"><label>Orders Received</label><input type="number" id="j-rv" min="0" oninput="calc('j')" class="bn" placeholder="0"></div>
+      <div class="field"><label>Orders Completed</label><input type="number" id="j-dn" min="0" oninput="calc('j')" class="bn" placeholder="0"></div>
+      <div class="field"><label>Orders Pending</label><input type="number" id="j-pd" min="0" class="bn" placeholder="0"></div>
+    </div>
+    <div class="fg fg3">
+      <div class="field"><label>Pallets Built Today</label><input type="number" id="j-pl" min="0" placeholder="0"></div>
+      <div class="field"><label>Special Packout Done?</label><select id="j-po"><option value="">Select</option><option>Yes</option><option>No</option><option>N/A</option></select></div>
+      <div class="field auto"><label>Completion Rate</label><input id="j-rt" readonly placeholder="Auto"></div>
+    </div>
+    <div class="pb"><div class="pf" id="j-bar" style="background:#6A1B9A;width:0%"></div></div>
+    <div class="pl" id="j-pl2">0% completed</div>
+    <div class="fg fg1" style="margin-top:8px">
+      <div class="field"><label>Tomorrow Truck Appointments</label><input id="j-tm" placeholder="Carrier, time, PO number"></div>
+      <div class="field"><label>Follow-up Calls or Emails Today</label><textarea id="j-fu" placeholder="Carrier communications today"></textarea></div>
+    </div>
+    <div class="sec">Carrier Issues</div>
+    <table class="mt"><thead><tr style="background:#C00000"><th>Carrier</th><th>PRO/Tracking</th><th>Order #</th><th>Issue</th><th>Claim?</th></tr></thead><tbody id="j-cr"></tbody></table>
+    <button class="ab" style="border-color:#C00000;color:#C00000" onclick="addC('j-cr')">+ Add carrier issue</button>
+    <div class="sec">Inventory and Next Day</div>
+    <div class="fg fg2">
+      <div class="field"><label>Any SKU Out of Stock?</label><select id="j-sk"><option value="">Select</option><option>No</option><option>Yes</option></select></div>
+    </div>
+    <div class="fg fg1">
+      <div class="field"><label>Orders Carrying to Tomorrow</label><input id="j-cy" placeholder="Order numbers or none"></div>
+      <div class="field"><label>Message for Fred</label><textarea id="j-mg" placeholder="Anything Fred needs to know"></textarea></div>
+    </div>
+    <button class="sub-btn" id="j-btn" style="background:#6A1B9A" onclick="go('j','Jonathan (Sr.)','LTL Priority','jonathan@boostoxygen.com')">Submit Jonathan Reconciliation to Fred</button>
+    <div class="ok" id="j-ok">✅ &nbsp; Submitted! Fred can see your numbers right now.</div>
+    <div class="er" id="j-er">Could not submit. Check internet and try again.</div>
+  </div>
+</div>
+</div>
+
+<!-- FRED -->
+<div class="panel" id="panel-f">
+<div class="card">
+  <div class="ch" style="background:#B71C1C"><span class="pulse"></span>Fred Davila — Master Summary &nbsp;|&nbsp; <span id="f-last-refresh" style="font-size:10px;opacity:.7">Auto-refreshes every 30 seconds</span></div>
+  <div class="cb">
+    <button class="rbtn" onclick="loadFred(true)">↻ Refresh Now</button>
+    <div id="f-ld" class="ldg" style="display:none">Loading...</div>
+    <div id="f-body">
+      <div class="sbar" id="f-stat">
+        <span class="chip wt">Stephanie &nbsp; pending</span>
+        <span class="chip wt">Ben &nbsp; pending</span>
+        <span class="chip wt">JL (Jonathan L.) &nbsp; pending</span>
+        <span class="chip wt">Jonathan (Sr.) &nbsp; pending</span>
+      </div>
+      <div class="kgrid">
+        <div class="kpi blue"><div class="v" id="fk-rv">0</div><div class="l">Total Received</div></div>
+        <div class="kpi green"><div class="v" id="fk-dn">0</div><div class="l">Total Shipped</div></div>
+        <div class="kpi amb"><div class="v" id="fk-pd">0</div><div class="l">Total Pending</div></div>
+        <div class="kpi red"><div class="v" id="fk-is">0</div><div class="l">Carrier Issues</div></div>
+        <div class="kpi pur"><div class="v" id="fk-rt">0%</div><div class="l">Same-Day Rate</div></div>
+        <div class="kpi gry"><div class="v" id="fk-tm">0/4</div><div class="l">Teams In</div></div>
+      </div>
+      <div class="sec">Team Breakdown</div>
+      <table class="tbl">
+        <thead><tr><th>Team</th><th>Lead</th><th>Received</th><th>Shipped</th><th>Pending</th><th>Rate</th><th>Submitted</th><th>Status</th></tr></thead>
+        <tbody id="f-tb">
+          <tr><td style="color:#1F4E79;font-weight:700">Online Set 1</td><td>Stephanie</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td></tr>
+          <tr><td style="color:#2E7D32;font-weight:700">Online Set 2</td><td>Ben</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td></tr>
+          <tr><td style="color:#E65100;font-weight:700">Online Set 3</td><td>JL (Jonathan L.)</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td></tr>
+          <tr><td style="color:#6A1B9A;font-weight:700">LTL Priority</td><td>Jonathan (Sr.)</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td></tr>
+        </tbody>
+      </table>
+      <div class="sec">Messages from Team Leads</div>
+      <div class="mbox" id="f-msg"><span style="color:#ccc">No messages yet from team leads.</span></div>
+      <div class="sec" id="f-as" style="display:none">Items Needing Attention</div>
+      <div id="f-al"></div>
+      <div class="sec">Fred Notes for Rob and Mike</div>
+      <div class="fg fg1">
+        <div class="field"><label>Ship Date Changes Today</label><textarea id="f-sc" placeholder="Order number, original date, new date, reason"></textarea></div>
+        <div class="field"><label>Escalations</label><textarea id="f-es" placeholder="Critical items for Rob and Mike"></textarea></div>
+        <div class="field"><label>Tomorrow Priorities</label><textarea id="f-tp" placeholder="Key focus areas for tomorrow"></textarea></div>
+        <div class="field"><label>Fred Notes</label><textarea id="f-nt" placeholder="Anything else for leadership"></textarea></div>
+      </div>
+      <button class="ebtn" onclick="genEmail()">Generate Email to Rob and Mike</button>
+      <div class="ebox" id="f-em"></div>
+      <button class="cbtn" id="f-cb" onclick="copyEmail()">Copy Email</button>
+      <p class="note" style="margin-top:6px">Send to rob@boostoxygen.com and mgrice@boostoxygen.com by 5:00 PM</p>
+    </div>
+  </div>
+</div>
+<p style="text-align:center;font-size:9px;color:#bbb;margin-top:6px;padding-bottom:16px">Developed by Naveen Dadi, Operations Specialist &nbsp;|&nbsp; Boost Oxygen LLC</p>
+</div>
+
+<script>
+var GAS = "https://script.google.com/macros/s/AKfycbx1NHg1hm4YlpaMxu9-rAIqVdsbM1JL3FvYSeyLZvvt0_7E-HurIapXx6cq3uXDZdGR/exec";
+
+// ── LIVE EST CLOCK ────────────────────────────────────────────────────
+function updateClock(){
+  var now = new Date();
+  var est = new Date(now.toLocaleString("en-US", {timeZone:"America/New_York"}));
+  var h = est.getHours(), m = est.getMinutes(), s = est.getSeconds();
+  var ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  var timeStr = h + ":" + (m<10?"0"+m:m) + ":" + (s<10?"0"+s:s) + " " + ampm;
+  var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var dateStr = days[est.getDay()] + ", " + months[est.getMonth()] + " " + est.getDate() + ", " + est.getFullYear();
+  document.getElementById("lv-time").textContent = timeStr;
+  document.getElementById("lv-date").textContent = dateStr;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────
+function sw(id){
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  var ids=["s","b","jl","j","f"];
+  ids.forEach(function(k,i){if(k===id) document.querySelectorAll(".tab")[i].classList.add("active");});
+  document.getElementById("panel-"+id).classList.add("active");
+  if(id==="f") loadFred(false);
+}
+
+// ── CALC RATE ─────────────────────────────────────────────────────────
+function calc(p){
+  var r=parseInt(document.getElementById(p+"-rv").value)||0;
+  var d=parseInt(document.getElementById(p+"-dn").value)||0;
+  var pct=r>0?Math.round(d/r*100):0;
+  document.getElementById(p+"-rt").value=pct+"%";
+  document.getElementById(p+"-bar").style.width=Math.min(pct,100)+"%";
+  var pl=document.getElementById(p+(p==="j"?"-pl2":"-pl"));
+  if(pl) pl.textContent=pct+"% completed";
+}
+
+var RS=["Inventory shortage","Label not printed","Carrier pickup missed","NetSuite issue","ShipStation issue","Customer hold","Address issue","Weight discrepancy","Routing guide issue","Pallet not built","Awaiting approval","Other"];
+var CA=["UPS","FedEx","USPS","LTL Carrier"];
+var IS=["Label never scanned","Stuck at facility","Routing exception","Wrong address","Lost","Damaged","Return received","Other"];
+
+function addC(id){
+  var tb=document.getElementById(id),tr=document.createElement("tr");
+  tr.innerHTML='<td><select><option value="">Pick</option>'+CA.map(function(c){return '<option>'+c+'</option>'}).join('')+'</select></td><td><input placeholder="Tracking #"></td><td><input placeholder="SO#"></td><td><select><option value="">Issue</option>'+IS.map(function(i){return '<option>'+i+'</option>'}).join('')+'</select></td><td><select><option>No</option><option>Yes - File today</option><option>Wait 15 days</option><option>Already filed</option></select></td>';
+  tb.appendChild(tr);
+}
+
+function ct(id){
+  var out=[];
+  document.querySelectorAll("#"+id+" tr").forEach(function(tr){
+    var v=Array.from(tr.querySelectorAll("input,select")).map(function(e){return e.value.trim();});
+    if(v.some(function(x){return x&&x!=="No";})) out.push(v.join("|"));
+  });
+  return out.join(";;");
+}
+
+function gv(id){var e=document.getElementById(id);return e?e.value.trim():"";}
+
+// ── SUBMIT ─────────────────────────────────────────────────────────────
+function go(p,name,team,email){
+  var btn=document.getElementById(p+"-btn");
+  btn.disabled=true; btn.textContent="Sending...";
+  document.getElementById(p+"-ok").style.display="none";
+  document.getElementById(p+"-er").style.display="none";
+
+  var rv=parseInt(gv(p+"-rv"))||0;
+  var dn=parseInt(gv(p+"-dn"))||0;
+  var pct=rv>0?Math.round(dn/rv*100):0;
+  var cc=document.querySelectorAll("#"+p+"-cr tr").length;
+
+  // EST time for submission
+  var now=new Date();
+  var estNow=new Date(now.toLocaleString("en-US",{timeZone:"America/New_York"}));
+  var h=estNow.getHours(), m=estNow.getMinutes();
+  var ampm=h>=12?"PM":"AM"; h=h%12||12;
+  var timeStr=h+":"+(m<10?"0"+m:m)+" "+ampm;
+  var y=estNow.getFullYear(),mo=estNow.getMonth()+1,dd=estNow.getDate();
+  var todayStr=mo+"/"+dd+"/"+y;
+
+  var extras="";
+  if(p==="b") extras="AMZ:"+gv("b-ac")+" WMT:"+gv("b-wc")+" Complaints:"+gv("b-cp")+" Emails:"+gv("b-em");
+  if(p==="j") extras="Pallets:"+gv("j-pl")+" BOL:"+gv("j-bl")+" Appts:"+gv("j-ap")+" Tmr:"+gv("j-tm")+" Packout:"+gv("j-po");
+
+  // Fold extras into msg
+  var baseMsg=gv(p+"-mg")||"";
+  var fullMsg=baseMsg;
+  if(extras) fullMsg=baseMsg?(baseMsg+" | "+extras):extras;
+
+  var d={
+    team:team, lead:name, email:email,
+    date:todayStr, time:timeStr,
+    packers:gv(p+"-pk"), absent:gv(p+"-ab"),
+    recv:String(rv), done:String(dn),
+    pend:String(parseInt(gv(p+"-pd"))||0),
+    unsent:String(parseInt(gv(p+"-un"))||0),
+    reship:String(parseInt(gv(p+"-rs"))||0),
+    rate:pct+"%", ccount:String(cc),
+    stock:gv(p+"-sk"),
+    carrier:ct(p+"-cr"),
+    carry:gv(p+"-cy"), msg:fullMsg
+  };
+
+  var ifr=document.createElement("iframe");
+  ifr.name="ifr_"+p+"_"+Date.now();
+  ifr.style.display="none";
+  document.body.appendChild(ifr);
+
+  var frm=document.createElement("form");
+  frm.method="POST"; frm.action=GAS; frm.target=ifr.name; frm.style.display="none";
+  var inp=document.createElement("input");
+  inp.type="hidden"; inp.name="data"; inp.value=JSON.stringify(d);
+  frm.appendChild(inp); document.body.appendChild(frm);
+
+  ifr.onload=function(){
+    btn.disabled=false; btn.textContent="✓ Submitted — Resubmit if needed";
+    document.getElementById(p+"-ok").style.display="block";
+    var tabs=["s","b","jl","j"];
+    var idx=tabs.indexOf(p);
+    if(idx>=0){
+      var t=document.querySelectorAll(".tab")[idx];
+      if(t.textContent.indexOf("✓")===-1) t.textContent+=" ✓";
+    }
+    setTimeout(function(){ifr.remove();frm.remove();},3000);
+    // Silently refresh Fred summary in background
+    silentRefreshFred();
+  };
+
+  frm.submit();
+  setTimeout(function(){frm.remove();},1000);
+}
+
+// ── FRED: SILENT BACKGROUND REFRESH ──────────────────────────────────
+// Never clears the screen while refreshing — updates in place only
+var FDATA = [];
+var _fredLoading = false;
+
+function silentRefreshFred(){
+  // Only actually fetch if on Fred tab — otherwise just queue
+  if(document.getElementById("panel-f").classList.contains("active")){
+    loadFred(false);
+  }
+}
+
+function loadFred(showLoader){
+  if(_fredLoading) return; // prevent double-fetch
+  _fredLoading = true;
+
+  // Show thin progress bar at top — NOT a full page loader
+  var rb = document.getElementById("rfbar");
+  rb.className = "rfbar running";
+
+  // Update last refresh time
+  var now = new Date();
+  var est = new Date(now.toLocaleString("en-US",{timeZone:"America/New_York"}));
+  var h=est.getHours(),m=est.getMinutes(),s=est.getSeconds();
+  var ap=h>=12?"PM":"AM"; h=h%12||12;
+  document.getElementById("f-last-refresh").textContent =
+    "Last refreshed: "+h+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s)+" "+ap+" ET";
+
+  var cb="cb_"+Date.now();
+  window[cb]=function(data){
+    _fredLoading = false;
+    rb.className = "rfbar done";
+    setTimeout(function(){rb.className="rfbar";},600);
+    FDATA=data.rows||[];
+    buildFred(FDATA); // updates in place — no screen wipe
+    delete window[cb];
+    var sc=document.getElementById("scr_"+cb);
+    if(sc) sc.remove();
+  };
+
+  var sc=document.createElement("script");
+  sc.id="scr_"+cb;
+  sc.src=GAS+"?callback="+cb+"&t="+Date.now();
+  sc.onerror=function(){
+    _fredLoading=false;
+    rb.className="rfbar";
+    // Silently fail — don't wipe screen on network error
+    sc.remove();
+    delete window[cb];
+  };
+  document.head.appendChild(sc);
+}
+
+function buildFred(rows){
+  // Get today in EST
+  var now=new Date();
+  var est=new Date(now.toLocaleString("en-US",{timeZone:"America/New_York"}));
+  var y=est.getFullYear(),m=est.getMonth()+1,d=est.getDate();
+  var todayFormats=[
+    m+"/"+d+"/"+y,
+    (m<10?"0"+m:m)+"/"+(d<10?"0"+d:d)+"/"+y,
+    est.toLocaleDateString("en-US")
+  ];
+
+  var todayRows=rows.filter(function(r){
+    if(!r.date) return false;
+    var rd=r.date.trim();
+    if(todayFormats.indexOf(rd)>-1) return true;
+    try{
+      var p=new Date(rd);
+      if(!isNaN(p)) return p.getFullYear()===y&&p.getMonth()+1===m&&p.getDate()===d;
+    }catch(e){}
+    return false;
+  });
+
+  // Sort by timestamp so latest submission wins
+  todayRows.sort(function(a,b){
+    return (a.ts||"").localeCompare(b.ts||"");
+  });
+
+  var latest={};
+  todayRows.forEach(function(r){if(r.team) latest[r.team]=r;});
+
+  var TMAP={
+    "Online Set 1":{name:"Stephanie",color:"#1565C0"},
+    "Online Set 2":{name:"Ben",color:"#2E7D32"},
+    "Online Set 3":{name:"JL (Jonathan L.)",color:"#E65100"},
+    "LTL Priority":{name:"Jonathan (Sr.)",color:"#6A1B9A"}
+  };
+
+  // Update status chips
+  var sb=document.getElementById("f-stat"); sb.innerHTML="";
+  var tRv=0,tDn=0,tPd=0,tIs=0,tSub=0;
+  Object.entries(TMAP).forEach(function(entry){
+    var tn=entry[0],ti=entry[1];
+    var s=latest[tn];
+    var chip=document.createElement("span");
+    chip.className="chip "+(s?"dn":"wt");
+    var displayTime=s?s.time:"";
+    chip.textContent=ti.name+(s?" ("+displayTime+")":"  pending");
+    sb.appendChild(chip);
+    if(s){tSub++;tRv+=parseInt(s.recv)||0;tDn+=parseInt(s.done)||0;tPd+=parseInt(s.pend)||0;tIs+=parseInt(s.ccount)||0;}
+  });
+
+  var rate=tRv>0?Math.round(tDn/tRv*100):0;
+  document.getElementById("fk-rv").textContent=tRv;
+  document.getElementById("fk-dn").textContent=tDn;
+  document.getElementById("fk-pd").textContent=tPd;
+  document.getElementById("fk-is").textContent=tIs;
+  document.getElementById("fk-rt").textContent=rate+"%";
+  document.getElementById("fk-tm").textContent=tSub+"/4";
+
+  // Update team breakdown table
+  var tb=document.getElementById("f-tb"); tb.innerHTML="";
+  Object.entries(TMAP).forEach(function(entry){
+    var tn=entry[0],ti=entry[1];
+    var s=latest[tn]; var tr=document.createElement("tr");
+    if(s){
+      var r=parseInt(s.recv)||0, dn=parseInt(s.done)||0;
+      var pct=r>0?Math.round(dn/r*100):0;
+      var bc=pct>=90?"bg":pct>=70?"ba":"br";
+      var st=pct>=90?"All Clear":pct>=70?"Minor Issues":"Needs Attention";
+      tr.innerHTML='<td style="font-weight:700;color:'+ti.color+'">'+tn+'</td><td>'+ti.name+'</td><td>'+r+'</td><td>'+dn+'</td><td style="color:'+(parseInt(s.pend)>0?"#BA7517":"#1B5E20")+';font-weight:700">'+(s.pend||0)+'</td><td><span class="badge '+bc+'">'+pct+'%</span></td><td style="color:#888;font-size:10px">'+(s.time||"")+'</td><td><span class="badge '+bc+'">'+st+'</span></td>';
+    } else {
+      tr.innerHTML='<td style="font-weight:700;color:'+ti.color+'">'+tn+'</td><td>'+ti.name+'</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td>';
+    }
+    tb.appendChild(tr);
+  });
+
+  // Messages
+  var msgs=[];
+  Object.entries(TMAP).forEach(function(entry){
+    var s=latest[entry[0]];
+    if(s&&s.msg) msgs.push("<b>"+entry[1].name+":</b> "+s.msg);
+  });
+  document.getElementById("f-msg").innerHTML=msgs.length?msgs.join("<br><br>"):'<span style="color:#ccc">No messages yet.</span>';
+
+  // Alerts
+  var alts=[];
+  Object.entries(TMAP).forEach(function(entry){
+    var s=latest[entry[0]];if(!s)return;
+    if(parseInt(s.pend)>10) alts.push(entry[1].name+" has "+s.pend+" pending orders");
+    if(parseInt(s.ccount)>3) alts.push(entry[1].name+" has "+s.ccount+" carrier issues");
+    if(parseInt(s.unsent)>5) alts.push(entry[1].name+" has "+s.unsent+" labels not shipped");
+  });
+  var ael=document.getElementById("f-al"),asec=document.getElementById("f-as");
+  if(alts.length){asec.style.display="block";ael.innerHTML=alts.map(function(a){return '<div class="alt">'+a+'</div>';}).join("");}
+  else{asec.style.display="none";ael.innerHTML="";}
+}
+
+function genEmail(){
+  var now=new Date();
+  var est=new Date(now.toLocaleString("en-US",{timeZone:"America/New_York"}));
+  var y=est.getFullYear(),m=est.getMonth()+1,d=est.getDate();
+  var tf=[m+"/"+d+"/"+y,(m<10?"0"+m:m)+"/"+(d<10?"0"+d:d)+"/"+y,est.toLocaleDateString("en-US")];
+  var todayRows=FDATA.filter(function(r){
+    if(!r.date) return false;
+    if(tf.indexOf(r.date.trim())>-1) return true;
+    try{var p=new Date(r.date);if(!isNaN(p)) return p.getFullYear()===y&&p.getMonth()+1===m&&p.getDate()===d;}catch(e){}
+    return false;
+  });
+  todayRows.sort(function(a,b){return (a.ts||"").localeCompare(b.ts||"");});
+  var latest={};todayRows.forEach(function(r){if(r.team)latest[r.team]=r;});
+  var tR=0,tD=0,tP=0,tI=0,tS=0,lines="";
+  [["Online Set 1","Stephanie"],["Online Set 2","Ben"],["Online Set 3","JL (Jonathan L.)"],["LTL Priority","Jonathan (Sr.)"]].forEach(function(pair){
+    var s=latest[pair[0]];
+    if(s){tS++;tR+=parseInt(s.recv)||0;tD+=parseInt(s.done)||0;tP+=parseInt(s.pend)||0;tI+=parseInt(s.ccount)||0;
+      var pct=parseInt(s.recv)>0?Math.round(parseInt(s.done)/parseInt(s.recv)*100):0;
+      lines+="  "+pair[0]+" ("+pair[1]+"): "+s.done+" of "+s.recv+" shipped ("+pct+"%), "+s.pend+" pending\n";
+    } else lines+="  "+pair[0]+" ("+pair[1]+"): Not yet submitted\n";
+  });
+  var rate=tR>0?Math.round(tD/tR*100):0;
+  var days=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var months=["January","February","March","April","May","June","July","August","September","October","November","December"];
+  var today=days[est.getDay()]+", "+months[est.getMonth()]+" "+est.getDate()+", "+est.getFullYear();
+  var em="To: rob@boostoxygen.com, mgrice@boostoxygen.com\nSubject: Daily Fulfillment Report — "+today+"\n\nHi Rob and Mike,\n\nHere is today's fulfillment summary.\n\nOVERALL\nTotal received: "+tR+"  |  Total shipped: "+tD+"  |  Same-day rate: "+rate+"%\nTotal pending: "+tP+"  |  Carrier issues: "+tI+"  |  Teams submitted: "+tS+"/4\n\nTEAM BREAKDOWN\n"+lines;
+  if(gv("f-sc")) em+="\nSHIP DATE CHANGES\n"+gv("f-sc")+"\n";
+  if(gv("f-es")) em+="\nESCALATIONS\n"+gv("f-es")+"\n";
+  if(gv("f-tp")) em+="\nTOMORROW PRIORITIES\n"+gv("f-tp")+"\n";
+  if(gv("f-nt")) em+="\nNOTES\n"+gv("f-nt")+"\n";
+  em+="\nBest,\nFred Davila\nFulfillment Manager, Boost Oxygen LLC\nfred@boostoxygen.com";
+  var box=document.getElementById("f-em"); box.textContent=em; box.style.display="block";
+  document.getElementById("f-cb").style.display="inline-block";
+}
+
+function copyEmail(){
+  navigator.clipboard.writeText(document.getElementById("f-em").textContent)
+    .then(function(){var b=document.getElementById("f-cb");b.textContent="Copied!";setTimeout(function(){b.textContent="Copy Email";},2000);});
+}
+
+// ── AUTO REFRESH — silent, 30 seconds, never wipes screen ────────────
+setInterval(function(){
+  if(document.getElementById("panel-f").classList.contains("active")){
+    loadFred(false);
+  }
+}, 30000);
+</script>
+</body>
+</html>
