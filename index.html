@@ -198,7 +198,7 @@ body{font-family:Arial,sans-serif;background:#F0F4F8;min-height:100vh}
 <!-- JL -->
 <div class="panel" id="panel-jl">
 <div class="card">
-  <div class="ch" style="background:#E65100">Online Set 3 — JL (Jonathan L.) &nbsp;|&nbsp; fulfillment2@boostoxygen.com &nbsp;|&nbsp; Target: 1:00 PM</div>
+  <div class="ch" style="background:#E65100">Online Set 3 — Yari &nbsp;|&nbsp; fulfillment2@boostoxygen.com &nbsp;|&nbsp; Target: 1:00 PM</div>
   <div class="cb">
     <div class="sec">Shift Info</div>
     <div class="fg fg2">
@@ -229,7 +229,7 @@ body{font-family:Arial,sans-serif;background:#F0F4F8;min-height:100vh}
       <div class="field"><label>Orders Carrying to Tomorrow</label><input id="jl-cy" placeholder="Order numbers or none"></div>
       <div class="field"><label>Message for Fred</label><textarea id="jl-mg" placeholder="Anything Fred needs to know"></textarea></div>
     </div>
-    <button class="sub-btn" id="jl-btn" style="background:#E65100" onclick="go('jl','JL (Jonathan L.)','Online Set 3','fulfillment2@boostoxygen.com')">Submit JL Reconciliation to Fred</button>
+    <button class="sub-btn" id="jl-btn" style="background:#E65100" onclick="go('jl','Yari','Online Set 3','fulfillment2@boostoxygen.com')">Submit JL Reconciliation to Fred</button>
     <div class="ok" id="jl-ok">✅ &nbsp; Submitted! Fred can see your numbers right now.</div>
     <div class="er" id="jl-er">Could not submit. Check internet and try again.</div>
   </div>
@@ -296,7 +296,7 @@ body{font-family:Arial,sans-serif;background:#F0F4F8;min-height:100vh}
       <div class="sbar" id="f-stat">
         <span class="chip wt">Stephanie &nbsp; pending</span>
         <span class="chip wt">Ben &nbsp; pending</span>
-        <span class="chip wt">JL (Jonathan L.) &nbsp; pending</span>
+        <span class="chip wt">Yari &nbsp; pending</span>
         <span class="chip wt">Jonathan (Sr.) &nbsp; pending</span>
       </div>
       <div class="kgrid">
@@ -313,7 +313,7 @@ body{font-family:Arial,sans-serif;background:#F0F4F8;min-height:100vh}
         <tbody id="f-tb">
           <tr><td style="color:#1F4E79;font-weight:700">Online Set 1</td><td>Stephanie</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td></tr>
           <tr><td style="color:#2E7D32;font-weight:700">Online Set 2</td><td>Ben</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td></tr>
-          <tr><td style="color:#E65100;font-weight:700">Online Set 3</td><td>JL (Jonathan L.)</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td></tr>
+          <tr><td style="color:#E65100;font-weight:700">Online Set 3</td><td>Yari</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td></tr>
           <tr><td style="color:#6A1B9A;font-weight:700">LTL Priority</td><td>Jonathan (Sr.)</td><td colspan="6" style="color:#bbb;font-style:italic">Not yet submitted</td></tr>
         </tbody>
       </table>
@@ -560,7 +560,7 @@ function buildFred(rows){
   var TMAP={
     "Online Set 1":{name:"Stephanie",color:"#1565C0"},
     "Online Set 2":{name:"Ben",color:"#2E7D32"},
-    "Online Set 3":{name:"JL (Jonathan L.)",color:"#E65100"},
+    "Online Set 3":{name:"Yari",color:"#E65100"},
     "LTL Priority":{name:"Jonathan (Sr.)",color:"#6A1B9A"}
   };
 
@@ -638,7 +638,7 @@ function genEmail(){
   todayRows.sort(function(a,b){return (a.ts||"").localeCompare(b.ts||"");});
   var latest={};todayRows.forEach(function(r){if(r.team)latest[r.team]=r;});
   var tR=0,tD=0,tP=0,tI=0,tS=0,lines="",msgLines="";
-  [["Online Set 1","Stephanie"],["Online Set 2","Ben"],["Online Set 3","JL (Jonathan L.)"],["LTL Priority","Jonathan (Sr.)"]].forEach(function(pair){
+  [["Online Set 1","Stephanie"],["Online Set 2","Ben"],["Online Set 3","Yari"],["LTL Priority","Jonathan (Sr.)"]].forEach(function(pair){
     var s=latest[pair[0]];
     if(s){tS++;tR+=parseInt(s.recv)||0;tD+=parseInt(s.done)||0;tP+=parseInt(s.pend)||0;tI+=parseInt(s.ccount)||0;
       var pct=parseInt(s.recv)>0?Math.round(parseInt(s.done)/parseInt(s.recv)*100):0;
@@ -663,6 +663,29 @@ function genEmail(){
   if(gv("f-tp")) body+="\nTOMORROW PRIORITIES\n"+gv("f-tp")+"\n";
   if(gv("f-nt")) body+="\nNOTES\n"+gv("f-nt")+"\n";
   body+="\nBest,\nFred Davila\nFulfillment Manager, Boost Oxygen LLC\nfred@boostoxygen.com";
+
+  // --- what makes this report, and who to call when it breaks ------------
+  var RULE=new Array(63).join("-");
+  body+="\n\n"+RULE;
+  body+="\nABOUT THIS REPORT";
+  body+="\n\nThis summary is produced by the Daily Fulfilment Reconciliation";
+  body+="\nAgent, an AI automation running inside the department. Each team lead";
+  body+="\nfiles their numbers through the portal as their run ends; the agent";
+  body+="\nchecks every submission, writes it to the shared sheet and builds this";
+  body+="\nreport ready to send the same day.";
+  body+="\n\nWhat it gives the department:";
+  body+="\n  \u2022 Same-day ship and same-day print measured every day, by team,";
+  body+="\n    rather than reconstructed at month end.";
+  body+="\n  \u2022 One set of numbers from the floor through to this email, with";
+  body+="\n    nothing retyped on the way.";
+  body+="\n  \u2022 Pending orders, carrier issues and team lead notes while there";
+  body+="\n    is still time to act on them.";
+  body+="\n  \u2022 A team that has not filed showing up the same day.";
+  body+="\n\nPortal: dadinaveen1729.github.io/Bo2-daily-reconciliation-system";
+  body+="\nDesigned, built and maintained by Naveen Dadi \u2014 naveen@boostoxygen.com";
+  body+="\nAny issue with the system or the site, please reach out.";
+  body+="\n\nThank you to the fulfilment team \u2014 good work today.";
+  body+="\n"+RULE;
 
   LAST_EMAIL={subject:"Daily Fulfillment Report — "+today,body:body};
 
